@@ -1,0 +1,5 @@
+{
+  "name": "variable_only",
+  "description": "Tylko wydatki zmienne (te, na które masz wpływ)",
+  "type": "variable"
+}

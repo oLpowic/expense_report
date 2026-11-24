@@ -1,0 +1,21 @@
+{
+  "input_folder": "data/exports",
+  "columns": {
+    "date": "Data transakcji",
+    "rejected_date": "Data odrzucenia",
+    "amount": "Kwota",
+    "currency": "Waluta",
+    "status": "Status",
+    "type": "Typ transakcji",
+    "balance": "Saldo po transakcji"
+  },
+  "text_columns": ["Odbiorca", "Opis"],
+  "skip_status_contains": ["odrzuc", "anulowan"],
+  "include_pending": false,
+  "pending_status_contains": ["w trakcie"],
+  "net_refunds": true,
+  "refund_types": ["Transakcja kartą", "Transakcja BLIK"],
+  "default_category": "Inne",
+  "compare_months": 6,
+  "auto_yearly_in_january": true
+}

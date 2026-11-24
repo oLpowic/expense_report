@@ -1,0 +1,5 @@
+{
+  "name": "big_expenses",
+  "description": "Pojedyncze duże wydatki od 200 zł",
+  "min_amount": 200
+}

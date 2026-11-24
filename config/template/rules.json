@@ -1,0 +1,16 @@
+{
+  "_info": "Reguły sprawdzane od góry do dołu. Pierwsza pasująca wygrywa, więc szczegółowe są wyżej. Słowa kluczowe pisz małymi literami. To szablon: dopisz własne sklepy i usługi.",
+  "rules": [
+    {"category": "Inwestycje", "keywords": ["bossa", "degiro", "trading 212", "interactive brokers"]},
+    {"category": "Edukacja", "keywords": ["czesne", "uczelnia", "uniwersytet", "politechnika", "udemy", "coursera"]},
+    {"category": "Mieszkanie", "keywords": ["czynsz", "wspólnota", "spółdzielnia", "najem", "wynajem", "akademik", "zakwaterowanie", "pge", "tauron", "enea", "energa", "pgnig", "wodociągi", "vectra", "netia", "t-mobile", "orange"]},
+    {"category": "Subskrypcje i opłaty", "keywords": ["netflix", "spotify", "hbo", "disney", "youtube", "apple.com", "icloud", "ubezpiecz", "pzu", "warta", "prowizja", "opłata za kartę"]},
+    {"category": "Podróże", "keywords": ["koleo", "pkp", "intercity", "flixbus", "ryanair", "wizzair", "booking", "airbnb", "hotel", "hostel", "noclegi", "bilety kolejowe"]},
+    {"category": "Jedzenie na mieście", "keywords": ["restaur", "kawiarnia", "cafe", "starbucks", "costa", "mcdonald", "kfc", "burger", "pizza", "sushi", "kebab", "doner", "tgtg", "glovo", "wolt", "pyszne", "uber eats"]},
+    {"category": "Transport", "keywords": ["komunikacja miejska", "ztm", "mpk", "zdit", "jakdojade", "skycash", "orlen", "shell", "circle k", "moya", "parking", "uber", "bolt", "freenow", "autostrad"]},
+    {"category": "Zakupy spożywcze", "keywords": ["biedronka", "lidl", "żabka", "zabka", "carrefour", "auchan", "kaufland", "dino", "stokrotka", "netto", "lewiatan", "delikatesy", "piekarnia"]},
+    {"category": "Zdrowie i higiena", "keywords": ["apteka", "rossmann", "hebe", "super-pharm", "medicover", "luxmed", "enel-med", "dentysta", "fryzjer", "lekarz"]},
+    {"category": "Ubrania i zakupy", "keywords": ["allegro", "zalando", "reserved", "lpp", "h&m", "cropp", "sinsay", "ikea", "castorama", "leroy", "media expert", "euro agd", "x-kom", "amazon", "empik", "decathlon", "action s.a.", "bricomarche"]},
+    {"category": "Rozrywka", "keywords": ["kino", "cinema", "multikino", "helios", "eventim", "ebilet", "teatr", "siłownia", "zdrofit", "calypso", "steam", "playstation", "basen"]}
+  ]
+}

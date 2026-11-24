@@ -1,0 +1,5 @@
+{
+  "name": "transport_housing",
+  "description": "Mieszkanie i transport (zależność: lokalizacja a koszty dojazdu)",
+  "categories": ["Mieszkanie", "Transport"]
+}

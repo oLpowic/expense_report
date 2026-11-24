@@ -1,0 +1,22 @@
+{
+  "currency": "PLN",
+  "types": {
+    "fixed": "wydatek stały, powtarzalny co miesiąc",
+    "variable": "wydatek zmienny",
+    "savings": "oszczędności / inwestycje (pokazywane osobno, nie wchodzą do sumy wydatków)"
+  },
+  "categories": [
+    {"name": "Mieszkanie", "type": "fixed", "examples": ["czynsz", "prąd", "gaz", "internet", "telefon"]},
+    {"name": "Edukacja", "type": "variable", "examples": ["czesne", "kursy", "książki"]},
+    {"name": "Transport", "type": "variable", "examples": ["komunikacja miejska", "taxi", "paliwo", "parking"]},
+    {"name": "Subskrypcje i opłaty", "type": "fixed", "examples": ["Netflix", "Spotify", "ubezpieczenie", "prowizje bankowe"]},
+    {"name": "Zakupy spożywcze", "type": "variable", "examples": ["Biedronka", "Lidl", "Żabka"]},
+    {"name": "Jedzenie na mieście", "type": "variable", "examples": ["restauracja", "kawiarnia", "dostawa jedzenia"]},
+    {"name": "Zdrowie i higiena", "type": "variable", "examples": ["apteka", "drogeria", "fryzjer"]},
+    {"name": "Ubrania i zakupy", "type": "variable", "examples": ["ubrania", "elektronika", "wyposażenie domu"]},
+    {"name": "Rozrywka", "type": "variable", "examples": ["kino", "koncert", "siłownia", "gry"]},
+    {"name": "Podróże", "type": "variable", "examples": ["bilety kolejowe", "nocleg", "bilety lotnicze"]},
+    {"name": "Inwestycje", "type": "savings", "examples": ["wpłaty na rachunek maklerski"]},
+    {"name": "Inne", "type": "variable", "examples": ["przelewy do znajomych", "wszystko nierozpoznane"]}
+  ]
+}

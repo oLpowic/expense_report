@@ -1,0 +1,5 @@
+{
+  "name": "fixed_only",
+  "description": "Tylko wydatki stałe (powtarzalne co miesiąc)",
+  "type": "fixed"
+}

@@ -1,0 +1,5 @@
+{
+  "name": "everyday",
+  "description": "Codzienne wydatki: bez edukacji i inwestycji, które zaburzają obraz miesiąca",
+  "exclude_categories": ["Edukacja", "Inwestycje"]
+}
