@@ -19,6 +19,7 @@ from openpyxl.chart import BarChart, LineChart, Reference
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 
+from src.periods import PeriodMap, assign_periods
 from src.report_monthly import (FONT, INPUT_FILL, NUM_FMT, PCT_FMT, TOTAL_FILL, TYPE_PL,
                                 header_row, month_status, put, style_chart, write_transactions)
 
@@ -191,6 +192,8 @@ def create_yearly_report(base_dir, data, categories, settings, year, filter_name
     year       - rok (liczba, np. 2026)
     data_start, data_end - zakres dat w eksportach (do oznaczania niepełnych miesięcy i roku)
     """
+    # roczny raport zawsze liczy miesiące kalendarzowe
+    data = assign_periods(data, PeriodMap("calendar", data_start, data_end))
     window = data[data["date"].dt.year == year].sort_values("date", kind="stable")
     if window.empty:
         raise ValueError(f"Brak transakcji z roku {year}.")

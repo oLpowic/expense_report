@@ -8,13 +8,14 @@ w Excelu (z wykresami): miesięczne i roczne.
 ## Wymagania
 
 - Python 3.10+
-- biblioteki: `pip install pandas openpyxl`
+- biblioteki: `pip install -r requirements.txt` (pandas, openpyxl)
+- do testów dodatkowo: `pip install -r requirements-dev.txt` (pytest)
 
 ## Szybki start
 
 1. Skopiuj szablon konfiguracji (tylko za pierwszym razem):
    ```
-   cp -r config.example config
+   cp -r config/template/* config/
    ```
    Potem dopisz w `config/rules.json` swoje sklepy i usługi (patrz niżej).
 2. Wyeksportuj z banku historię operacji do xlsx i wrzuć plik do `data/exports/`.
@@ -52,7 +53,7 @@ expense_report/
 │   ├── categorize.py       ← kategorie, zwroty, filtry
 │   ├── report_monthly.py   ← raport miesięczny
 │   └── report_yearly.py    ← raport roczny
-├── config.example/         ← SZABLON konfiguracji (ogólny, do wersjonowania w git)
+├── config/template/         ← SZABLON konfiguracji (ogólny, do wersjonowania w git)
 │   ├── settings.json
 │   ├── categories.json
 │   ├── rules.json
@@ -62,6 +63,10 @@ expense_report/
 │   ├── categories.json     ← lista kategorii i ich typ
 │   ├── rules.json          ← słowa kluczowe przypisujące transakcje do kategorii
 │   └── filters/            ← filtry (po jednym pliku JSON)
+├── tests/                  ← testy automatyczne (pytest, dane syntetyczne)
+├── requirements.txt        ← biblioteki potrzebne do działania
+├── requirements-dev.txt    ← + pytest (do testów)
+├── pytest.ini              ← ustawienia pytest
 ├── data/exports/           ← tu wrzucasz eksporty z banku (nie trafia do git)
 └── output/
     ├── 2026/2026-11.xlsx   ← raporty miesięczne z danego roku (nie trafia do git)
@@ -78,7 +83,7 @@ nawyki (sklepy, uczelnia, inwestycje). Nie wrzucaj ich do repozytorium. Proponow
 data/
 output/
 
-# osobista konfiguracja (w git zostaje tylko config.example/)
+# osobista konfiguracja (w git zostaje tylko config/template/)
 config/
 
 # Python
@@ -86,8 +91,8 @@ __pycache__/
 *.pyc
 ```
 
-W repozytorium trzymaj tylko szablon `config.example/` (ogólne reguły, bez danych osobistych).
-Jeśli dodasz do szablonu coś nowego i ogólnego (np. nowy filtr), skopiuj to do `config.example/`.
+W repozytorium trzymaj tylko szablon `config/template/` (ogólne reguły, bez danych osobistych).
+Jeśli dodasz do szablonu coś nowego i ogólnego (np. nowy filtr), skopiuj to do `config/template/`.
 Jeśli kiedyś zmienisz format konfiguracji, zaktualizuj też szablon, żeby nowa kopia działała.
 
 ## Jak działa kategoryzacja
@@ -168,9 +173,33 @@ porównuj ich 1:1 z miesiącami pełnymi.
 | `compare_months` | ile poprzednich miesięcy w porównaniu (domyślnie 6) |
 | `auto_yearly_in_january` | `true` = w styczniu utwórz raport roczny za poprzedni rok |
 
+## Testy
+
+```
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+Testy używają wyłącznie danych syntetycznych (zmyślonych), więc nie dotykają Twoich
+eksportów ani raportów. Sprawdzają m.in.:
+
+- wczytywanie: formaty kwot i dat, pomijanie odrzuconych i blokad, usuwanie duplikatów
+  z nakładających się eksportów (a zostawianie dwóch identycznych płatności z jednego pliku),
+- kategoryzację: kolejność reguł, zwroty, wpływy, typy kategorii, filtry,
+- raporty xlsx: strukturę, formuły i policzone wartości (sumy, udziały, stałe/zmienne,
+  inwestycje osobno, rekordy miesięcy),
+- `main.py`: komendy, komunikaty błędów i automatyczny raport roczny w styczniu,
+- konfigurację: szablon `config/template/` oraz Twój `config/` (jeśli istnieje). Test wyłapie
+  słowo kluczowe z wielką literą, kategorię z reguły bez wpisu w `categories.json`, słowo
+  powtórzone w dwóch kategoriach albo filtr wskazujący nieistniejącą kategorię.
+
+**Po każdej zmianie w `rules.json`, `categories.json` lub filtrach uruchom testy.**
+Testy sprawdzające wartości w raportach korzystają z LibreOffice (`soffice`). Jeśli go nie
+masz, te testy są pomijane (`skipped`), a reszta działa normalnie.
+
 ## Najczęstsze problemy
 
-- **"Brak folderu config/"**: skopiuj szablon: `cp -r config.example config`.
+- **"Brak folderu config/"**: skopiuj szablon: `cp -r config/template/* config/`.
 - **"Brak kolumny ..."**: bank zmienił nagłówki. Popraw nazwy w `settings.json` → `columns`.
 - **Dużo w "Inne"**: sprawdź arkusz "Do przypisania" i dopisz słowa kluczowe do `rules.json`.
 - **"Nie ma filtru ..."**: nazwa filtru to nazwa pliku z `config/filters/` bez `.json`.

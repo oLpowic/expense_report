@@ -11,13 +11,14 @@ Excel reports with charts: monthly and yearly.
 ## Requirements
 
 - Python 3.10+
-- libraries: `pip install pandas openpyxl`
+- libraries: `pip install -r requirements.txt` (pandas, openpyxl)
+- for tests also: `pip install -r requirements-dev.txt` (pytest)
 
 ## Quick start
 
 1. Copy the configuration template (first run only):
    ```
-   cp -r config.example config
+   cp -r config/template/* config/
    ```
    Then add your own shops and services to `config/rules.json` (see below).
 2. Export your transaction history from the bank as xlsx and put the file in `data/exports/`.
@@ -55,7 +56,7 @@ expense_report/
 │   ├── categorize.py       ← categories, refunds, filters
 │   ├── report_monthly.py   ← monthly report
 │   └── report_yearly.py    ← yearly report
-├── config.example/         ← configuration TEMPLATE (generic, safe to keep in git)
+├── config/template/         ← configuration TEMPLATE (generic, safe to keep in git)
 │   ├── settings.json
 │   ├── categories.json
 │   ├── rules.json
@@ -65,6 +66,10 @@ expense_report/
 │   ├── categories.json     ← list of categories and their type
 │   ├── rules.json          ← keywords that map transactions to categories
 │   └── filters/            ← filters (one JSON file each)
+├── tests/                  ← automated tests (pytest, synthetic data)
+├── requirements.txt        ← libraries needed to run
+├── requirements-dev.txt    ← + pytest (for tests)
+├── pytest.ini              ← pytest settings
 ├── data/exports/           ← put your bank exports here (not in git)
 └── output/
     ├── 2026/2026-11.xlsx   ← monthly reports for a given year (not in git)
@@ -81,7 +86,7 @@ Bank exports and reports contain real transactions, and `rules.json` reveals you
 data/
 output/
 
-# personal configuration (only config.example/ stays in git)
+# personal configuration (only config/template/ stays in git)
 config/
 
 # Python
@@ -89,9 +94,9 @@ __pycache__/
 *.pyc
 ```
 
-Keep only the `config.example/` template in the repository (generic rules, no personal data).
+Keep only the `config/template/` template in the repository (generic rules, no personal data).
 If you add something new and generic to your config (e.g. a new filter), copy it to
-`config.example/` too. If you ever change the config format, update the template as well so
+`config/template/` too. If you ever change the config format, update the template as well so
 that a fresh copy still works.
 
 ## How categorisation works
@@ -176,9 +181,33 @@ Do not compare them 1:1 with complete months.
 | `compare_months` | how many previous months in the comparison (default 6) |
 | `auto_yearly_in_january` | `true` = create last year's yearly report in January |
 
+## Tests
+
+```
+pip install -r requirements-dev.txt
+python -m pytest
+```
+
+The tests use only synthetic (made-up) data, so they never touch your exports or reports.
+They cover, among other things:
+
+- loading: amount and date formats, skipping rejected items and pending holds, removing
+  duplicates from overlapping exports (while keeping two identical payments from one file),
+- categorisation: rule order, refunds, incoming money, category types, filters,
+- xlsx reports: structure, formulas and calculated values (totals, shares, fixed/variable,
+  investments shown separately, monthly records),
+- `main.py`: commands, error messages and the automatic yearly report in January,
+- configuration: the `config/template/` template and your `config/` (if present). A test
+  catches a keyword with capital letters, a rule category missing from `categories.json`, a
+  keyword listed in two categories, or a filter pointing at a non-existent category.
+
+**Run the tests after every change to `rules.json`, `categories.json` or the filters.**
+Tests that check values inside the reports use LibreOffice (`soffice`). If you do not have it,
+those tests are skipped and the rest run normally.
+
 ## Common problems
 
-- **"Brak folderu config/" (no config/ folder):** copy the template: `cp -r config.example config`.
+- **"Brak folderu config/" (no config/ folder):** copy the template: `cp -r config/template/* config/`.
 - **"Brak kolumny ..." (missing column):** the bank changed its headers. Fix the names in
   `settings.json` → `columns`.
 - **Too much in "Inne":** check the "Do przypisania" sheet and add keywords to `rules.json`.

@@ -9,7 +9,11 @@ Co robi ten plik:
    albo miesiąc w komórce B2, liczby i wykresy przeliczą się same.
 4. dodaje arkusz "Do przypisania" z transakcjami z kategorii "Inne"
 
-Uwaga: miesiąc w arkuszach jest zapisany jako liczba rrrrmm (np. 202611),
+Okres może być kalendarzowy albo liczony od dnia wypłaty (patrz src/periods.py).
+Porównanie z poprzednim okresem robimy "na te same dni": jeśli bieżący okres trwa np. 21 dni,
+to poprzedni też liczymy tylko za jego pierwsze 21 dni (obok jest też suma za cały poprzedni okres).
+
+Uwaga: okres w arkuszach jest zapisany jako liczba rrrrmm (np. 202611),
 wyświetlana jako 2026-11. Dzięki temu formuły działają tak samo w każdym języku Excela.
 """
 from pathlib import Path
@@ -19,6 +23,8 @@ from openpyxl import Workbook
 from openpyxl.chart import BarChart, Reference
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+
+from src.periods import PeriodMap, assign_periods
 
 FONT = "Arial"
 NUM_FMT = '#,##0.00;-#,##0.00;"-"'     # zero wyświetla się jako "-"
@@ -87,30 +93,32 @@ def style_chart(chart, title, width, height):
 # ---------------------------------------------------------------- arkusze
 def write_transactions(ws, data):
     """Arkusz 'Transakcje': surowe wiersze, na których liczą się formuły."""
-    header_row(ws, 1, ["Data", "Miesiąc", "Kategoria", "Typ", "Kwota (PLN)", "Rodzaj", "Opis"])
+    header_row(ws, 1, ["Data", "Okres", "Kategoria", "Typ", "Kwota (PLN)", "Rodzaj", "Opis", "Dzień okresu"])
     for i, r in enumerate(data.itertuples(), start=2):
         ws.cell(i, 1, r.date.to_pydatetime()).number_format = "yyyy-mm-dd"
-        ws.cell(i, 2, r.date.year * 100 + r.date.month).number_format = KEY_FMT
+        ws.cell(i, 2, int(r.period)).number_format = KEY_FMT
         ws.cell(i, 3, r.category)
         ws.cell(i, 4, TYPE_PL.get(r.type, r.type))
         ws.cell(i, 5, float(r.spent)).number_format = NUM_FMT
         ws.cell(i, 6, "wydatek" if r.kind == "expense" else "zwrot")
         ws.cell(i, 7, r.text[:120])
-        for col in range(1, 8):
+        ws.cell(i, 8, int(r.period_day))
+        for col in range(1, 9):
             ws.cell(i, col).font = Font(name=FONT, size=10)
-    for col, width in zip("ABCDEFG", (12, 10, 24, 12, 14, 10, 70)):
+    for col, width in zip("ABCDEFGH", (12, 10, 24, 12, 14, 10, 70, 12)):
         ws.column_dimensions[col].width = width
-    ws.auto_filter.ref = f"A1:G{len(data) + 1}"
+    ws.auto_filter.ref = f"A1:H{len(data) + 1}"
     ws.freeze_panes = "A2"
 
 
-def write_summary(ws, data, cats, month, filter_name, status_text, last_row):
+def write_summary(ws, data, cats, month, filter_name, status_text, last_row, elapsed, length):
     """Arkusz 'Podsumowanie': tabela kategorii, stałe/zmienne, TOP 5, wykres."""
     # zakresy z arkusza Transakcje, używane w formułach
     col_month = f"Transakcje!$B$2:$B${last_row}"
     col_cat = f"Transakcje!$C$2:$C${last_row}"
     col_type = f"Transakcje!$D$2:$D${last_row}"
     col_sum = f"Transakcje!$E$2:$E${last_row}"
+    col_day = f"Transakcje!$H$2:$H${last_row}"
 
     put(ws, "A1", "Raport wydatków", bold=True).font = Font(name=FONT, size=14, bold=True)
     put(ws, "A2", "Miesiąc", bold=True)
@@ -123,10 +131,15 @@ def write_summary(ws, data, cats, month, filter_name, status_text, last_row):
     put(ws, "B4", filter_name or "brak")
     put(ws, "A5", "Kompletność danych", bold=True)
     put(ws, "B5", status_text)
+    put(ws, "A6", "Dni w porównaniu", bold=True)
+    put(ws, "B6", elapsed, fmt="0", color="0000FF", fill=INPUT_FILL, align="center")
+    put(ws, "C6", "← ile pierwszych dni okresu porównujemy (poprzedni okres liczony tylko za tyle dni)",
+        color="808080")
 
     # --- tabela kategorii
     header_row(ws, 7, ["Kategoria", "Typ", "Suma (PLN)", "Udział", "Transakcje",
-                       "Poprzedni miesiąc (PLN)", "Zmiana (PLN)", "Zmiana %"])
+                       "Poprzedni okres, te same dni (PLN)", "Zmiana (PLN)", "Zmiana %",
+                       "Poprzedni okres, cały (PLN)"])
     first = 8
     total_row = first + len(cats)
     for i, (name, typ) in enumerate(cats):
@@ -136,14 +149,15 @@ def write_summary(ws, data, cats, month, filter_name, status_text, last_row):
         put(ws, f"C{r}", f'=SUMIFS({col_sum},{col_cat},$A{r},{col_month},$B$2)', fmt=NUM_FMT)
         put(ws, f"D{r}", f"=IF($C${total_row}=0,0,C{r}/$C${total_row})", fmt=PCT_FMT)
         put(ws, f"E{r}", f'=COUNTIFS({col_cat},$A{r},{col_month},$B$2)', fmt="0")
-        put(ws, f"F{r}", f'=SUMIFS({col_sum},{col_cat},$A{r},{col_month},$B$3)', fmt=NUM_FMT)
+        put(ws, f"F{r}", f'=SUMIFS({col_sum},{col_cat},$A{r},{col_month},$B$3,{col_day},"<="&$B$6)', fmt=NUM_FMT)
+        put(ws, f"I{r}", f'=SUMIFS({col_sum},{col_cat},$A{r},{col_month},$B$3)', fmt=NUM_FMT)
         put(ws, f"G{r}", f"=C{r}-F{r}", fmt=NUM_FMT)
         put(ws, f"H{r}", f'=IF(F{r}=0,"-",G{r}/F{r})', fmt=PCT_FMT, align="right")
 
     last_cat = total_row - 1
     put(ws, f"A{total_row}", "Razem (bez inwestycji)", bold=True, fill=TOTAL_FILL)
     put(ws, f"B{total_row}", None, fill=TOTAL_FILL)
-    for col in "CEFG":
+    for col in "CEFGI":
         fmt = "0" if col == "E" else NUM_FMT
         put(ws, f"{col}{total_row}", f"=SUM({col}{first}:{col}{last_cat})", bold=True, fmt=fmt, fill=TOTAL_FILL)
     put(ws, f"D{total_row}", f"=SUM(D{first}:D{last_cat})", bold=True, fmt=PCT_FMT, fill=TOTAL_FILL)
@@ -162,11 +176,23 @@ def write_summary(ws, data, cats, month, filter_name, status_text, last_row):
     put(ws, f"A{rr}", "Inwestycje (osobno, poza wydatkami)")
     put(ws, f"C{rr}", f'=SUMIFS({col_sum},{col_type},"inwestycje",{col_month},$B$2)', fmt=NUM_FMT)
 
+    # --- prognoza na koniec okresu (proste tempo: dotychczasowe wydatki / dni * długość okresu)
+    r = rr + 2
+    header_row(ws, r, ["Prognoza na koniec okresu", "", "Wartość"])
+    put(ws, f"A{r + 1}", "Dni okresu, które minęły")
+    put(ws, f"C{r + 1}", "=$B$6", fmt="0")
+    put(ws, f"A{r + 2}", "Długość okresu (dni)")
+    put(ws, f"C{r + 2}", length, fmt="0", color="0000FF")
+    put(ws, f"A{r + 3}", "Prognoza wydatków (PLN)", bold=True)
+    put(ws, f"C{r + 3}", f"=IF(C{r + 1}>=C{r + 2},C{total_row},C{total_row}/C{r + 1}*C{r + 2})",
+        bold=True, fmt=NUM_FMT)
+    rr = r + 3
+
     # --- TOP 5 (wartości z chwili generowania raportu, nie formuły)
     r = rr + 2
     put(ws, f"A{r}", "5 największych wydatków (stan z chwili generowania raportu)", bold=True)
     header_row(ws, r + 1, ["Data", "Kategoria", "Kwota (PLN)", "Opis"])
-    month_rows = data[(data["date"].dt.to_period("M") == month)
+    month_rows = data[(data["period"] == month_key(month))
                       & (data["kind"] == "expense") & (data["type"] != "savings")]
     for j, row in enumerate(month_rows.nlargest(5, "spent").itertuples()):
         rr = r + 2 + j
@@ -185,9 +211,9 @@ def write_summary(ws, data, cats, month, filter_name, status_text, last_row):
     chart.x_axis.scaling.orientation = "maxMin"   # kategorie od góry, tak jak w tabeli
     chart.y_axis.crosses = "max"                  # oś kwot na dole
     style_chart(chart, "Wydatki wg kategorii", 18, 9)
-    ws.add_chart(chart, "J7")
+    ws.add_chart(chart, "K7")
 
-    for col, width in zip("ABCDEFGH", (34, 22, 16, 10, 12, 22, 16, 12)):
+    for col, width in zip("ABCDEFGHI", (34, 22, 16, 10, 12, 24, 16, 12, 22)):
         ws.column_dimensions[col].width = width
 
 
@@ -242,9 +268,9 @@ def write_comparison(ws, cats, periods, statuses, last_row):
 
 
 def write_unassigned(ws, data, month, default_category):
-    """Arkusz 'Do przypisania': transakcje z kategorii 'Inne' w wybranym miesiącu."""
+    """Arkusz 'Do przypisania': transakcje z kategorii 'Inne' w wybranym okresie."""
     header_row(ws, 1, ["Data", "Kwota (PLN)", "Opis"])
-    rows = data[(data["date"].dt.to_period("M") == month) & (data["category"] == default_category)]
+    rows = data[(data["period"] == month_key(month)) & (data["category"] == default_category)]
     rows = rows.sort_values("spent", ascending=False)
     if rows.empty:
         put(ws, "A2", "Wszystkie transakcje zostały rozpoznane.")
@@ -259,18 +285,24 @@ def write_unassigned(ws, data, month, default_category):
 
 
 # ---------------------------------------------------------------- główna funkcja
-def create_monthly_report(base_dir, data, categories, settings, month, filter_name, data_start, data_end):
+def create_monthly_report(base_dir, data, categories, settings, month, filter_name, data_start, data_end,
+                          pmap=None):
     """
     Tworzy plik output/<rok>/<rrrr-mm>[_filtr].xlsx i zwraca jego ścieżkę.
 
     data       - skategoryzowane transakcje (po filtrze), wszystkie miesiące
     month      - pd.Period, wybrany miesiąc
-    data_start, data_end - zakres dat w eksporcie (do oznaczania niepełnych miesięcy)
+    data_start, data_end - zakres dat w eksporcie (do oznaczania niepełnych okresów)
+    pmap       - PeriodMap (kalendarzowy / od wypłaty); domyślnie kalendarzowy
     """
+    if pmap is None:
+        pmap = PeriodMap("calendar", data_start, data_end)
+    data = assign_periods(data, pmap)
+
     # miesiące w oknie porównania: N poprzednich + wybrany
     n = settings["compare_months"]
     periods = [month - k for k in range(n, -1, -1)]
-    window = data[data["date"].dt.to_period("M").isin(periods)].sort_values("date", kind="stable")
+    window = data[data["period"].isin([month_key(p) for p in periods])].sort_values("date", kind="stable")
     if window.empty:
         raise ValueError("Brak transakcji do raportu.")
 
@@ -278,12 +310,13 @@ def create_monthly_report(base_dir, data, categories, settings, month, filter_na
     present = set(window["category"])
     cats = [(c["name"], c["type"]) for c in categories["categories"]
             if c["name"] in present and c["type"] != "savings"]
-    statuses = [month_status(p, data_start, data_end) for p in periods]
+    statuses = [pmap.status(p) for p in periods]
 
-    # opis kompletności danych: wybrany i poprzedni miesiąc
-    prev_status = month_status(month - 1, data_start, data_end)
-    status_text = f"{month}: {statuses[-1]}, poprzedni miesiąc: {prev_status} " \
-                  f"(dane w eksporcie: {data_start:%Y-%m-%d} - {data_end:%Y-%m-%d})"
+    # opis kompletności danych: wybrany i poprzedni okres
+    prev_status = pmap.status(month - 1)
+    status_text = (f"{month}: {statuses[-1]}, poprzedni okres: {prev_status} "
+                   f"(dane w eksporcie: {data_start:%Y-%m-%d} - {data_end:%Y-%m-%d}; "
+                   f"tryb: {pmap.mode_name}, okres {pmap.describe(month)})")
 
     # w porównaniu pomijamy miesiące bez żadnych danych (poza wybranym)
     keep = [i for i, (p, s) in enumerate(zip(periods, statuses)) if s != "brak danych" or p == month]
@@ -300,7 +333,8 @@ def create_monthly_report(base_dir, data, categories, settings, month, filter_na
     ws_un = wb.create_sheet("Do przypisania")
 
     write_transactions(ws_tr, window)
-    write_summary(ws_sum, window, cats, month, filter_name, status_text, last_row)
+    write_summary(ws_sum, window, cats, month, filter_name, status_text, last_row,
+                  pmap.elapsed(month), pmap.length(month))
     write_comparison(ws_cmp, cats, periods, statuses, last_row)
     write_unassigned(ws_un, window, month, settings["default_category"])
 
